@@ -1,2 +1,8 @@
+certifi==2020.12.5
+chardet==3.0.4
 Django==1.11.28
+idna==2.10
 pytz==2021.1
+qcloudsms-py==0.1.4
+requests==2.23.0
+urllib3==1.25.11

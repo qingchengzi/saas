@@ -53,7 +53,7 @@ ROOT_URLCONF = 'saas.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')]
+        'DIRS': [os.path.join(BASE_DIR, 'app01/templates')]
         ,
         'APP_DIRS': True,
         'OPTIONS': {
@@ -115,8 +115,21 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-# 自己的短信模板
-SMS = 0
+# 腾讯短信配置
+# 腾讯云短信应用的 app_id
+TENCENT_SMS_APP_ID = 888888
+
+# 腾讯云短信应用的 app_key
+TENCENT_SMS_APP_KEY = "88888888888"
+
+# 腾讯云短信签名内容
+TENCENT_SMS_SIGN = "saas项目"
+
+# 用户是登录还是注册，腾讯短信需要注册和登录两个模板，这里写腾讯短信两个模板的ID
+TENCENT_SMS_TEMPLATE = {
+    "register": 548760,
+    "login": 548762
+}
 
 try:
     from .local_settings import *
