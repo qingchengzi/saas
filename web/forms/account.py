@@ -1,36 +1,12 @@
-import random
-from django.shortcuts import render, HttpResponse
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# author： 青城子
+# datetime： 2021/5/2 13:52 
+# ide： PyCharm
+
 from django import forms
-from django.core.validators import RegexValidator  # 正则表达式
-
-from utils.tencent.sms import send_sms_single
-
-from django.conf import settings
-from app01 import models
-
-
-# Create your views here.
-
-def send_sms(request):
-    """发送短信实例"
-       ?tpl=login --> 548762
-       ?tpl=register --> 548760
-       通过url中的tpl值来判断用户传过来的是登录还是注册
-       注册：http://127.0.0.1:8000/send/sms/?tpl=register
-       登录：http://127.0.0.1:8000/send/sms/?tpl=login
-    """
-    tpl = request.GET.get("tpl")
-    template_id = settings.TENCENT_SMS_TEMPLATE.get(tpl)
-    if not template_id:
-        return HttpResponse("模板不存在")
-
-    code = random.randrange(1000, 9999)
-    res = send_sms_single("13578786567", template_id, [code, ])
-    print(res)
-    if res["result"] == 0:
-        return HttpResponse("成功")
-    else:
-        return HttpResponse(res["errmsg"])
+from web import models
+from django.core.validators import RegexValidator
 
 
 class RegisterModelForm(forms.ModelForm):
@@ -62,13 +38,3 @@ class RegisterModelForm(forms.ModelForm):
         for name, field in self.fields.items():
             field.widget.attrs['class'] = "form-control"
             field.widget.attrs['placeholder'] = "请输入%s" % (field.label,)
-
-
-def register(request):
-    """
-    注册功能实例
-    :param request:
-    :return:
-    """
-    form = RegisterModelForm()
-    return render(request, "app01/register.html", {"form": form})
