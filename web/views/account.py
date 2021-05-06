@@ -7,6 +7,8 @@
 """
 用户账号相关的功能：注册、短信、登录、注销
 """
+import uuid
+import datetime
 
 from django.shortcuts import render, HttpResponse, redirect
 from django.db.models import Q
@@ -19,16 +21,31 @@ from django.conf import settings
 
 def register(request):
     """注册"""
-    print("立马就啊", request.GET)
     if request.method == "GET":
         form = RegisterModelForm()
         return render(request, 'register.html', {'form': form})
     form = RegisterModelForm(data=request.POST)
     if form.is_valid():
         # 验证通过，写入数据库(数据库密码要是密文)
-        form.save()
-        # instance=form.save()相当于instance=models.UserInfo.objects.create(**form.cleaned_data)
         # 通过form.save()来保存，会自动把数据库中没有的字段去除，create会将所有的字段都提交到数据库，会报错。
+        # form.save()  # 用户表新建一条数据(注册)
+        instance = form.save()  # 相当于instance=models.UserInfo.objects.create(**form.cleaned_data)
+        # 创建交易记录
+        # 方式1:免费额度存储在交易记录中
+        # 对应中间件auth.py 方式1
+        policy_object = models.PricePolicy.objects.filter(category=1, title="个人免费版").first()
+        models.Transaction.objects.create(
+            status=2,
+            order=str(uuid.uuid4()),
+            user=instance,
+            price_policy=policy_object,
+            count=0,
+            price=0,
+            start_datetime=datetime.datetime.now(),
+        )
+
+        # 方式二 对应auth.py 方式2 ，方式2在这里什么都不写，把方式1全部注释即可.
+
         return JsonResponse({'status': True, 'data': '/login/'})
     return JsonResponse({'status': False, 'error': form.errors})
 
