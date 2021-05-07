@@ -8,12 +8,15 @@
     <link rel="stylesheet" href="{% static 'plugin/font-awesome/css/font-awesome.min.css' %}">
     <link rel="stylesheet" href="{% static 'css/manage.css' %}">
     <style>
+        <!--  去除导航栏四个角落的圆角 -- >
         .navbar-av {
             border-radius: 0;
         }
-
-        <!--
-        去除导航栏四个角落的圆角 -- >
+        .error-msg {
+            color: red;
+            position: absolute;
+            font-size: 13px;
+        }
     </style>
     {% block css %}{% endblock %}
 </head>

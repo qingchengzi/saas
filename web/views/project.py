@@ -5,6 +5,9 @@
 # ide： PyCharm
 from django.shortcuts import render
 
+from web.forms.project import ProjectModeForm
+from django.http import JsonResponse
+
 
 def project_list(request):
     """
@@ -12,9 +15,15 @@ def project_list(request):
     :param request:
     :return:
     """
-    # 获取当前登录用户的信息
-    print(request.tracer.user)
-    # 获取当前价格策略信息
-    print(request.tracer.price_policy)
+    if request.method == "GET":
+        form = ProjectModeForm(request)
+        return render(request, "project_list.html", {"form": form})
+    form = ProjectModeForm(request, data=request.POST)
+    if form.is_valid():
+        # 验证通过:用户提交了项目名、颜色、描述，还需要谁创建的项目
+        form.instance.creator = request.tracer.user  # 当前用户创建的项目
+        # 创建项目
+        form.save()
+        return JsonResponse({"status": True})
 
-    return render(request, "project_list.html")
+    return JsonResponse({"status": False, "error": form.errors})
