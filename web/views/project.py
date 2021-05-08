@@ -8,6 +8,8 @@ from django.shortcuts import render
 from web.forms.project import ProjectModeForm
 from django.http import JsonResponse
 
+from web import models
+
 
 def project_list(request):
     """
@@ -16,8 +18,38 @@ def project_list(request):
     :return:
     """
     if request.method == "GET":
+        # GET请求查看项目列表
+        """
+        1、从数据库中获取两部分数据：
+            我创建的所有项目：已星标、未星标
+            我参与的所有项目：已星标、未星标
+            
+        2、提取已星标
+            列表 = 循环【我创建的所有项目】 + [我参与的所有项目] 把已星标的数据提取处理
+            得到三个列表：星标、创建、参与
+        """
+        # 区分：用户创建项目 和 用户参与项目
+        # 存放创建项目和参与项目的对象，(当前用户创建项目、当前用户参与者的星标对象放到star，(当前用户创建项目）无星标对象放到my,join无星标存放项目参与者
+        project_dict = {"star": [], "my": [], "join": []}
+        # 查询当前用户创建的所有项目
+        my_project_list = models.Project.objects.filter(creator=request.tracer.user)
+        for row in my_project_list:
+            if row.star:  # 星标为true放到star
+                project_dict['star'].append(row)
+            else:
+                project_dict['my'].append(row)
+
+        # 当前用户参与的所有项目
+        join_project_list = models.ProjectUser.objects.filter(user=request.tracer.user)
+        for item in join_project_list:
+            if item.start:
+                project_dict['star'].append(item.project)  # project_dict字典中star已添加了项目的对象，这里在添加对象以后取值就会混乱,所有添加项目参与者项目
+            else:
+                project_dict['join'].append(item.project)  # 用户参与项目无星标放到join中
+
         form = ProjectModeForm(request)
-        return render(request, "project_list.html", {"form": form})
+        return render(request, "project_list.html", {"form": form, "project_dict": project_dict})
+    # POST,对话框的ajax添加项目
     form = ProjectModeForm(request, data=request.POST)
     if form.is_valid():
         # 验证通过:用户提交了项目名、颜色、描述，还需要谁创建的项目

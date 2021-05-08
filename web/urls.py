@@ -7,7 +7,7 @@
 from django.conf.urls import url
 from web.views import account
 from web.views import home
-from web.views import  project
+from web.views import project
 
 urlpatterns = [
     url(r'^register/$', account.register, name='register'),
