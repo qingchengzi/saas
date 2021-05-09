@@ -19,5 +19,11 @@ urlpatterns = [
     url(r'^index/$', home.index, name="index"),
     # 项目管理
     url(r'^project/list/$', project.project_list, name="project_list"),
+    # 项目添加星标
+    # 我创建的:/project/star/my/1
+    # 我参与的:/project/star/join/1
+    url(r'^project/star/(?P<project_type>\w+)/(?P<project_id>\d+)/$', project.project_star, name="project.star"),
+    # 取消项目的星标
+    url(r'^project/unstar/(?P<project_type>\w+)/(?P<project_id>\d+)/$', project.project_unstar, name="project.unstar")
 
 ]

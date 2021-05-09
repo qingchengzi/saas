@@ -4,6 +4,7 @@
         .project {
             margin-top: 10px;
         }
+
         .panel-body {
             padding: 0;
             display: flex;
@@ -92,12 +93,36 @@
             <div class="panel-body">
                 {% for itme in project_dict.star %}
                     <div class="item">
-                        <a href="#" class="title"
+                        <a href="" class="title"
+                           style="background-color: {{ itme.value.get_color_display }}">{{ itme.value.name }}</a>
+                        <div class="info">
+                            <div>
+                                <a href="{% url 'project.unstar'  project_type=itme.type project_id=itme.value.id %}">
+                                    <i class="fa fa-star" aria-hidden="true" style="color: #f0ad4e"></i>
+                                </a>
+                                <span>{{ itme.value.creator.username }}</span>
+                            </div>
+                            <div>
+                                <i class="fa fa-user-o" aria-hidden="true"></i>
+                                <span>{{ itme.value.join_count }}</span>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        <!--我创建的项目-->
+        <div class="panel panel-default">
+            <div class="panel-heading"><i class="fa fa-list" aria-hidden="true"></i> 我创建的</div>
+            <div class="panel-body">
+                {% for itme in project_dict.my %}
+                    <div class="item">
+                        <a href="{% url 'project.star' project_type='my' project_id=itme.id %}" class="title"
                            style="background-color: {{ itme.get_color_display }}">{{ itme.name }}</a>
                         <div class="info">
                             <div>
-                                <a href="#">
-                                    <i class="fa fa-star" aria-hidden="true" style="color: #f0ad4e"></i>
+                                <a href="{% url 'project.star' project_type='my' project_id=itme.id %}">
+                                    <i class="fa fa-star" aria-hidden="true" style="color:#d5d5d5"></i>
                                 </a>
                                 <span>{{ itme.creator.username }}</span>
                             </div>
@@ -110,13 +135,13 @@
                 {% endfor %}
             </div>
         </div>
-
+        <!--我参与的项目-->
         <div class="panel panel-default">
-            <div class="panel-heading"><i class="fa fa-list" aria-hidden="true"></i> 我创建的</div>
+            <div class="panel-heading"><i class="fa fa-handshake-o" aria-hidden="true"></i> 我参与的</div>
             <div class="panel-body">
-                {% for itme in project_dict.my %}
+                {% for itme in project_dict.join %}
                     <div class="item">
-                        <a href="#" class="title"
+                        <a href="{% url 'project.star' project_type='join' project_id=itme.id %}" class="title"
                            style="background-color: {{ itme.get_color_display }}">{{ itme.name }}</a>
                         <div class="info">
                             <div>
@@ -134,16 +159,6 @@
                 {% endfor %}
             </div>
         </div>
-
-        <div class="panel panel-default">
-            <div class="panel-heading"><i class="fa fa-handshake-o" aria-hidden="true"></i> 我参与的</div>
-            <div class="panel-body">
-                {% for itme in project_dict.join %}
-                    <div>{{ itme.name }}</div>
-                {% endfor %}
-            </div>
-        </div>
-
     </div>
 
 

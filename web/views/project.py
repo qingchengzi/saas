@@ -3,7 +3,7 @@
 # author： 青城子
 # datetime： 2021/5/5 21:29 
 # ide： PyCharm
-from django.shortcuts import render
+from django.shortcuts import render, HttpResponse, redirect
 
 from web.forms.project import ProjectModeForm
 from django.http import JsonResponse
@@ -35,7 +35,7 @@ def project_list(request):
         my_project_list = models.Project.objects.filter(creator=request.tracer.user)
         for row in my_project_list:
             if row.star:  # 星标为true放到star
-                project_dict['star'].append(row)
+                project_dict['star'].append({"value": row, "type": "my"})
             else:
                 project_dict['my'].append(row)
 
@@ -43,7 +43,8 @@ def project_list(request):
         join_project_list = models.ProjectUser.objects.filter(user=request.tracer.user)
         for item in join_project_list:
             if item.start:
-                project_dict['star'].append(item.project)  # project_dict字典中star已添加了项目的对象，这里在添加对象以后取值就会混乱,所有添加项目参与者项目
+                project_dict['star'].append({"values": item.project,
+                                             "type": "join"})  # project_dict字典中star已添加了项目的对象，这里在添加对象以后取值就会混乱,所有添加项目参与者项目
             else:
                 project_dict['join'].append(item.project)  # 用户参与项目无星标放到join中
 
@@ -59,3 +60,34 @@ def project_list(request):
         return JsonResponse({"status": True})
 
     return JsonResponse({"status": False, "error": form.errors})
+
+
+def project_star(request, project_type, project_id):
+    """项目添加星标,需要区分我创建的项目和我参与的项目"""
+    if project_type == "my":
+        models.Project.objects.filter(id=project_id, creator=request.tracer.user).update(
+            star=True)  # 我选的项目必须是我创建的通过creator参数赋值为当前用户来限制，目的是为了防止别人在url中直接修改id后改变项目状态
+        return redirect("project_list")
+    if project_type == "join":  # 我参与的项目
+        models.Project.objects.filter(project_id=project_id, user=request.tracer.user).update(star=True)
+        return redirect("project_list")
+    return HttpResponse("请求错误")
+
+
+def project_unstar(request, project_type, project_id):
+    """
+    取消星标，需要判断是我创建的项目，还是我参与的项目
+    通过显示项目列表时project_list函数中project_dict字典中type值进行判断
+    :param request:
+    :param project_type:
+    :param project_id:
+    :return:
+    """
+    if project_type == "my":
+        models.Project.objects.filter(id=project_id, creator=request.tracer.user).update(
+            star=False)
+        return redirect("project_list")
+    if project_type == "join":
+        models.Project.objects.filter(project_id=project_id, user=request.tracer.user).update(star=False)
+        return redirect("project_list")
+    return HttpResponse("请求错误")
