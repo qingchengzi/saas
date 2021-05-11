@@ -1,4 +1,5 @@
 {% load static %}
+{% load project %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,10 +9,12 @@
     <link rel="stylesheet" href="{% static 'plugin/font-awesome/css/font-awesome.min.css' %}">
     <link rel="stylesheet" href="{% static 'css/manage.css' %}">
     <style>
-        <!--  去除导航栏四个角落的圆角 -- >
+        <!--
+        去除导航栏四个角落的圆角 -- >
         .navbar-av {
             border-radius: 0;
         }
+
         .error-msg {
             color: red;
             position: absolute;
@@ -38,19 +41,12 @@
         <!-- Collect the nav links, forms, and other content for toggling -->
         <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
             <ul class="nav navbar-nav">
-                <li class="dropdown active">
-                    <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
-                       aria-expanded="false">项目<span class="caret"></span></a>
-                    <ul class="dropdown-menu">
-                        <li><a href="#">Action</a></li>
-                        <li><a href="#">Another action</a></li>
-                        <li><a href="#">Something else here</a></li>
-                        <li role="separator" class="divider"></li>
-                        <li><a href="#">Separated link</a></li>
-                        <li role="separator" class="divider"></li>
-                        <li><a href="#">One more separated link</a></li>
-                    </ul>
-                </li>
+                {% all_project_list request %}
+                <!--判断：是否进入项目了-->
+                {% if request.tracer.project %}
+                    <!--选中菜单背景颜色，获取当前请求的URL和所有的菜单进行比较-->
+                    {% manage_menu_list request %}
+                {% endif %}
             </ul>
             <ul class="nav navbar-nav navbar-right">
                 <li><a href="#">工作台</a></li>

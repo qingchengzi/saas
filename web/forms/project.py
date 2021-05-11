@@ -8,13 +8,15 @@ from django import forms
 from django.core.exceptions import ValidationError
 
 from web.forms.bootstrap import BootStrapForm
+from web.forms.widgets import ColorRadioSelect
 from web import models
 
 
 class ProjectModeForm(BootStrapForm, forms.ModelForm):
+    bootstrap_class_exclude = ['color']  # color不使用BootStrap样式
+
     # 方式1：重写models中字段且新增属性
     # desc = forms.CharField(widget=forms.Textarea(attrs={"xx":12}))  # 重写desc因为在models.py中是CharField类型
-
     def __init__(self, request, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.request = request
@@ -25,7 +27,9 @@ class ProjectModeForm(BootStrapForm, forms.ModelForm):
         # 方式2 重写models中字段且通过attrs参数为该字段新增属性
         widgets = {
             # "desc": forms.Textarea(attrs={"xx": 123})
-            "desc": forms.Textarea
+            "desc": forms.Textarea,
+            # "color": forms.Select # 添加项目时颜色的选择方式：默认Select框显示，修改为radio显示
+            "color": ColorRadioSelect(attrs={"class": "color-radio"})  # 自定义的插件
         }
 
     def clean_name(self):

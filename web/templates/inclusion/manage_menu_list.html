@@ -1,0 +1,5 @@
+{% for itme in data_list %}
+    <li {% if itme.class %} class="active" {% endif %}><a href="{{ itme.url }}">{{ itme.title }}</a></li>
+{% endfor %}
+
+

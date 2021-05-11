@@ -17,6 +17,7 @@ class Tracer:
     def __init__(self):
         self.user = None
         self.price_policy = None
+        self.project = None
 
 
 class AuthMiddleware(MiddlewareMixin):
@@ -71,3 +72,31 @@ class AuthMiddleware(MiddlewareMixin):
             else:
                 request.price_policy = _object.price_policy
         """
+
+    def process_view(self, request, view, args, kwargs):
+        """
+        :param request:
+        :param view:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        # 判断URL是否以manage开头,如果是则判断项目ID是否是我的或者是我参与的
+        if not request.path_info.startswith("/manage/"):
+            return
+        # project_id 是我创建 或者 我参与的
+        property_id = kwargs.get("project_id")
+        # 是否是我创建的
+        project_object = models.Project.objects.filter(creator=request.tracer.user, id=property_id).first()
+        if project_object:  # 是我创建的项目，就通过
+            request.tracer.project = project_object
+            return
+        # 是否是我参与的项目
+        project_user_object = models.ProjectUser.objects.filter(user=request.tracer.user,
+                                                                project_id=property_id).first()
+        if project_user_object:
+            # 是我参与的项目
+            request.tracer.project = project_user_object.project
+            return
+        # 如果是已manage开头，但不是当前用户的项目或者当前用户参与的项目，重定向到project_list页面
+        return redirect("project_list")

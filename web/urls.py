@@ -4,10 +4,11 @@
 # datetime： 2021/4/30 21:40 
 # ide： PyCharm
 
-from django.conf.urls import url
+from django.conf.urls import url, include
 from web.views import account
 from web.views import home
 from web.views import project
+from web.views import manage
 
 urlpatterns = [
     url(r'^register/$', account.register, name='register'),
@@ -17,13 +18,21 @@ urlpatterns = [
     url(r'^send/sms/$', account.send_sms, name='send_sms'),
     url(r'^logout/$', account.logout, name='logout'),
     url(r'^index/$', home.index, name="index"),
-    # 项目管理
+    # 项目列表
     url(r'^project/list/$', project.project_list, name="project_list"),
     # 项目添加星标
     # 我创建的:/project/star/my/1
     # 我参与的:/project/star/join/1
     url(r'^project/star/(?P<project_type>\w+)/(?P<project_id>\d+)/$', project.project_star, name="project.star"),
     # 取消项目的星标
-    url(r'^project/unstar/(?P<project_type>\w+)/(?P<project_id>\d+)/$', project.project_unstar, name="project.unstar")
+    url(r'^project/unstar/(?P<project_type>\w+)/(?P<project_id>\d+)/$', project.project_unstar, name="project.unstar"),
+    url(r'^manage/(?P<project_id>\d+)/', include([
+        url(r'^dashboard/$', manage.dashboard, name="dashboard"),
+        url(r'^issues/$', manage.issues, name="issues"),
+        url(r'^statistics/$', manage.statistics, name="statistics"),
+        url(r'^file/$', manage.file, name="file"),
+        url(r'^wiki/$', manage.wiki, name="wiki"),
+        url(r'^setting/$', manage.setting, name="setting"),
+    ], None, None)),
 
 ]
