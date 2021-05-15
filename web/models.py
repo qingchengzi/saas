@@ -93,3 +93,18 @@ class ProjectUser(models.Model):
     # invitee = models.ForeignKey(verbose_name="邀请者", to="UserInfo")
     star = models.BooleanField(verbose_name="星标", default=False)
     create_datetime = models.DateTimeField(verbose_name="加入时间", auto_now_add=True)
+
+
+class Wiki(models.Model):
+    """
+    wiki表
+    """
+    project = models.ForeignKey(verbose_name="项目", to="Project")
+    title = models.CharField(verbose_name="标题", max_length=32)
+    content = models.TextField(verbose_name="内容")
+    depth = models.IntegerField(verbose_name="深度", default=1)
+    # 自己关联自己,to=self或者表名
+    parent = models.ForeignKey(verbose_name="父文章", to="Wiki", null=True, blank=True, related_name="children")
+
+    def __str__(self):
+        return self.title
