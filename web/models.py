@@ -51,7 +51,6 @@ class Transaction(models.Model):
     price = models.IntegerField(verbose_name="实际支付价格")
     start_datetime = models.DateTimeField(verbose_name="开始时间", null=True, blank=True)
     end_datetime = models.DateTimeField(verbose_name="结束时间", null=True, blank=True)
-
     create_datetime = models.DateTimeField(verbose_name="创建时间", auto_now_add=True)
 
 
@@ -74,10 +73,9 @@ class Project(models.Model):
     desc = models.CharField(verbose_name="项目描述", max_length=255, null=True, blank=True)
     user_space = models.IntegerField(verbose_name="项目已使用空间", default=0)
     star = models.BooleanField(verbose_name="星标", default=False)
-
-    # 暂未使用到
-    # bucket = models.CharField(verbose_name="腾讯对象存储桶", max_length=128)
-    # region = models.CharField(verbose_name="腾讯对象存储桶区域", max_length=32)
+    # 桶的名称
+    bucket = models.CharField(verbose_name="cos桶", max_length=128)
+    region = models.CharField(verbose_name="cos区域", max_length=32)
 
     join_count = models.SmallIntegerField(verbose_name="参与人数", default=1)
     creator = models.ForeignKey(verbose_name="创建者", to="UserInfo")

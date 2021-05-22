@@ -3,12 +3,15 @@
 # author： 青城子
 # datetime： 2021/5/5 21:29 
 # ide： PyCharm
+import time
+
 from django.shortcuts import render, HttpResponse, redirect
 
 from web.forms.project import ProjectModeForm
+from web import models
 from django.http import JsonResponse
 
-from web import models
+from utils.tencent.cos import create_bucket
 
 
 def project_list(request):
@@ -53,6 +56,14 @@ def project_list(request):
     # POST,对话框的ajax添加项目
     form = ProjectModeForm(request, data=request.POST)
     if form.is_valid():
+        # name = form.cleaned_data["name"]
+        # 1.为项目创建一个桶 桶名字格式:"{}-{}-{}-1253858492"
+        bucket = "{}-{}-1253858492".format(request.tracer.user.mobile_phone, str(int(time.time())))
+        region = "ap-guangzhou"
+        create_bucket(bucket, region)
+        # 2.把桶和区域写入到数据库
+        form.instance.bucket = bucket
+        form.instance.region = region
         # 验证通过:用户提交了项目名、颜色、描述，还需要谁创建的项目
         form.instance.creator = request.tracer.user  # 当前用户创建的项目
         # 创建项目

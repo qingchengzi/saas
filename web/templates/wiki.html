@@ -1,6 +1,9 @@
 {% extends 'layout/manage.html' %}
+{% load static %}
 
 {% block css %}
+    <link rel="stylesheet" href="{% static 'plugin/editor.md/css/editormd.preview.min.css' %}">
+    <!--预览调用preview.min.css-->
     <style>
         .panel-default {
             margin-top: 10px;
@@ -52,6 +55,18 @@
                        class="btn btn-success btn-xs">
                         <i class="fa fa-plus-circle" aria-hidden="true"></i> 新建
                     </a>
+                    {% if wiki_object %}
+                        <a href="{% url 'wiki_edit' project_id=request.tracer.project.id wiki_id=wiki_object.id %}"
+                           type="button"
+                           class="btn btn-primary btn-xs">
+                            <i class="fa fa-edit" aria-hidden="true"></i> 编辑
+                        </a>
+                        <a href="{% url 'wiki_delete' project_id=request.tracer.project.id  wiki_id=wiki_object.id %}"
+                           type="button"
+                           class="btn btn-danger btn-xs">
+                            <i class="fa fa-train" aria-hidden="true"></i> 删除
+                        </a>
+                    {% endif %}
                 </div>
             </div>
             <div class="panel-body">
@@ -61,14 +76,16 @@
                 </div>
                 <div class="col-sm-9 content">
                     {% if wiki_object %}
-                        {{ wiki_object.content }}
+                        <div id="previewMarkdown">
+                            <textarea> {{ wiki_object.content }}</textarea>
+                        </div>
                     {% else %}
                         <div style="text-align: center;margin-top: 50px">
-                        <h4>《{{ request.tracer.project.name }}》wiki文档库</h4>
-                        <a href="{% url 'wiki_add' project_id=request.tracer.project.id %}">
-                            <i class="fa fa-plus-circle" aria-hidden="true"> 新建文章</i>
-                        </a>
-                    </div>
+                            <h4>《{{ request.tracer.project.name }}》wiki文档库</h4>
+                            <a href="{% url 'wiki_add' project_id=request.tracer.project.id %}">
+                                <i class="fa fa-plus-circle" aria-hidden="true"> 新建文章</i>
+                            </a>
+                        </div>
                     {% endif %}
                 </div>
             </div>
@@ -77,12 +94,26 @@
 {% endblock %}
 
 {% block js %}
+    <script src="{% static 'plugin/editor.md/editormd.min.js' %}"></script>
+    <script src="{% static 'plugin/editor.md/lib/marked.min.js' %}"></script>
+    <script src="{% static 'plugin/editor.md/lib/prettify.min.js' %}"></script>
+    <script src="{% static 'plugin/editor.md/lib/raphael.min.js' %}"></script>
+    <script src="{% static 'plugin/editor.md/lib/underscore.min.js' %}"></script>
+    <script src="{% static 'plugin/editor.md/lib/sequence-diagram.min.js' %}"></script>
+    <script src="{% static 'plugin/editor.md/lib/flowchart.min.js' %}"></script>
+    <script src="{% static 'plugin/editor.md/lib/jquery.flowchart.min.js' %}"></script>
     <script>
         // 全局变量生成 http://127.0.0.0.1:8002/manage/2/wiki/detail/
         var WIKI_DETAL_URL = "{% url 'wiki' project_id=request.tracer.project.id %}";
         $(function () {
             iniCatalog();
+            initPreivewMarkdown();
         });
+        function initPreivewMarkdown() {
+            editormd.markdownToHTML("previewMarkdown",{
+                htmlDecode:"style,script,iframe"    // 输入内容中style,script,iframe标签时进行处理过滤。标签style(引入其它页面),script(XSS攻击),iframe(嵌套其它页面)
+            });
+        }
 
         function iniCatalog() {
             $.ajax({
@@ -112,5 +143,4 @@
             })
         }
     </script>
-
 {% endblock %}
