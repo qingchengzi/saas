@@ -61,7 +61,7 @@ def project_list(request):
         bucket = "{}-{}-1253858492".format(request.tracer.user.mobile_phone, str(int(time.time())))
         region = "ap-guangzhou"
         create_bucket(bucket, region)
-        # 2.把桶和区域写入到数据库
+        # 2.创建项目，把桶和区域写入到数据库
         form.instance.bucket = bucket
         form.instance.region = region
         # 验证通过:用户提交了项目名、颜色、描述，还需要谁创建的项目

@@ -1,5 +1,221 @@
 {% extends 'layout/manage.html' %}
 
+{% block css %}
+    <style>
+        .panel-default .panel-heading {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+        }
+
+        .panel-default > .panel-heading a {
+            text-decoration: none;
+        }
+
+        .panel-default > .panel-heading span {
+            padding: 0 5px;
+        }
+
+        .panel-default > .panel-heading .function .upload {
+            overflow: hidden;
+        }
+
+        .panel-default > .panel-heading .function .upload input {
+            opacity: 0;
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 76px;
+            left: -2px;
+            overflow: hidden;
+        }
+
+        .upload-progress {
+            position: fixed;
+            right: 2px;
+            bottom: 2px;
+            width: 400px;
+        }
+
+        .upload-progress .progress-error {
+            color: red;
+        }
+    </style>
+
+{% endblock %}
+
 {% block content %}
-    <h1>文件操作</h1>
+    <div class="container-fluid">
+        <div class="panel panel-default" style="margin-top: 20px">
+            <!-- Default panel contents -->
+            <div class="panel-heading">
+                <div>
+                    <a href="{% url 'file' project_id=request.tracer.project.id %}">
+                        <i class="fa fa-home" aria-hidden="true"></i>
+                        <span>文件库</span>
+                    </a>
+                    {% for record in breadcrumb_list %}
+                        <a href="{% url 'file' project_id=request.tracer.project.id %}?folder={{ record.id }}">
+                            <i class="fa fa-caret-right" aria-hidden="true"></i>
+                            <span>{{ record.name }}</span>
+                        </a>
+                    {% endfor %}
+                </div>
+                <div>
+                    <a class="btn btn-success btn-xs" data-toggle="modal" data-target="#addModal" data-whatever="新建文件夹">
+                        <!--使用bootstrap只带属性data-toggle="modal" data-target="#addModal" 点击后弹窗ID=addModal模态对话框-->
+                        <i class="fa fa-plus-circle" aria-hidden="true"></i> 新建文件夹
+                    </a>
+                    {# <a class="btn btn-success btn-xs" data-toggle="modal" data-target="#addModal" data-whatever="编辑文件夹">#}
+                    {# <!--使用bootstrap只带属性data-toggle="modal" data-target="#addModal" 点击后弹窗ID=addModal模态对话框-->#}
+                    {# <i class="fa fa-plus-circle" aria-hidden="true"></i> 编辑文件夹#}
+                    {# </a>#}
+                </div>
+            </div>
+            <!-- Table -->
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>名称</th>
+                    <th>文件大小</th>
+                    <th>更新者</th>
+                    <th>更新时间</th>
+                    <th>操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for item in file_object_list %}
+                    <tr>
+                        <td>
+                            {% if item.file_type == 1 %}
+                                <i class="fa fa-file" aria-hidden="true"></i>
+                                {{ item.name }}
+                            {% else %}
+                                <a href="{% url 'file' project_id=request.tracer.project.id %}?folder={{ item.id }}">
+                                    <i class="fa fa-folder" aria-hidden="true"></i>
+                                    {{ item.name }}
+                                </a>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.file_type == 1 %}
+                                {{ item.file_size }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>{{ item.update_user.username }}</td>
+                        <td>{{ item.update_datetime }}</td>
+                        <td>
+                            <!--是文件夹的时候才出现编辑-->
+                            {% if item.file_type == 2 %}
+                                <a class="btn btn-default btn-xs"
+                                   data-toggle="modal"
+                                   data-target="#addModal"
+                                   data-name="{{ item.name }}"
+                                   data-fid="{{ item.id }}"
+                                   data-whatever="修改文件夹">
+                                    <i class="fa fa-pencil-square-o" aria-hidden="true"></i>
+                                </a>
+                            {% endif %}
+                            <a>删除</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="addModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                            aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="myModalLabel">Modal title</h4>
+                </div>
+                <div class="modal-body">
+                    <form id="form">
+                        {% csrf_token %}
+                        <input class="hide" type="text" name="fid" id="fid">
+                        {% for field in form %}
+                            <div class="form-group">
+                                <label for={{ field.id_for_label }}>{{ field.label }}</label>
+                                {{ field }}
+                                <span class="error-msg">{{ field.errors.0 }}</span> <!--加不加都无所谓，这里加上为空占个位-->
+                            </div>
+                        {% endfor %}
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">取 消</button>
+                    <button id="btnFormSubmit" type="button" class="btn btn-primary">确 定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+{% endblock %}
+
+{% block js %}
+    <!--为使用的Modal对话框添加插件作用是修改modal对话框的title，页面初始化时就执行-->
+    <script>
+        var FOLDER_URL = "{% url 'file' project_id=request.tracer.project.id %}"
+        $(function () {
+            initAddModal();
+            bindModelSubmit();
+        });
+        <!--当模态对话框显示出来时,函数就会执行,下面是bootstrap中模态对话框的代码 -->
+        <!-- 作用就是获取标签中属性data-whatever的值,然后替换.modal-title类标签的文本值,这里是modal对话框的tile,添加对话框是title是添加文件夹,编辑对话框时是编辑文件夹-->
+        function initAddModal() {
+            $('#addModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget); // Button that triggered the modal
+                var recipient = button.data('whatever'); // 获取到data-whatever="新建文件夹"的值
+                var name = button.data("name");
+                var fid = button.data("fid");
+                // If necessary, you could initiate an AJAX request here (and then do the updating in a callback).
+                // Update the modal's content. We'll use jQuery here, but you could use a data binding library or other methods instead.
+                var modal = $(this)
+                modal.find('.modal-title').text(recipient) // 找到modal对话框的title 如：<h4 class="modal-title" id="myModalLabel">Modal title</h4> 将Modal title替换新建文件夹
+                // 弹窗中添加文件夹成功或者报错后取消，再次点击弹窗清空上次错误提示和输入内容
+                if (fid) {  // 编辑时有fid，添加时没有fid
+                    //编辑
+                    modal.find("#id_name").val(name);
+                    modal.find("#fid").val(fid);
+                } else {
+                    // 新建
+                    modal.find('.error-msg').text(" "); // 错误信息置空,即可清除错误信息 ，找到.error-msg标签然后将text()为空即可
+                    // 清空弹窗中表单里面输入的内容
+                    // 方法1：document.getElementById("#form").reset();
+                    // 方法2
+                    $('#form')[0].reset();
+                }
+            })
+        }
+
+        // 新建文件夹点击确定后先后台发送ajax请求
+        function bindModelSubmit() {
+            $("#btnFormSubmit").click(function () {
+                $.ajax({
+                    url: location.href, // location.href获取当前页面上的url包含参数
+                    type: "POST",
+                    data: $("#form").serialize(),  // id=form的表单然后通过serialize()获取该表单中的所有值
+                    dataType: "JSON",
+                    success: function (res) {
+                        console.log(res);
+                        if (res.status) {
+                            location.href = location.href;  // location.href=location.href 重新刷新一下
+                        } else {
+                            $.each(res.error, function (key, value) {
+                                $("#id_" + key).next().text(value[0]);
+                            })
+                        }
+                    }
+                })
+            })
+        }
+    </script>
 {% endblock %}
