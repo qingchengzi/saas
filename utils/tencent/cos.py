@@ -41,3 +41,33 @@ def upload_file(bucket, region, file_object, key):
     )
     # 返回图片路径，预览时用
     return "https://{0}.cos.{1}.myqcloud.com/{2}".format(bucket, region, key)
+
+
+def delete_file(bucket, region, key):
+    config = CosConfig(Region=region, SecretId=settings.TENCENT_COS_ID, SecretKey=settings.TENCENT_COS_KEY, )
+    client = CosS3Client(config)
+
+    client.delete_object(
+        Bucket=bucket,
+        Key=key  # 上传到桶之后的文件名
+    )
+
+
+def delete_file_list(bucket, region, key_list):
+    """
+    批量删除
+    :param bucket:
+    :param region:
+    :param key:
+    :return:
+    """
+    config = CosConfig(Region=region, SecretId=settings.TENCENT_COS_ID, SecretKey=settings.TENCENT_COS_KEY, )
+    client = CosS3Client(config)
+    objects = {
+        "Quiet": "true",
+        "Object": key_list
+    }
+    client.delete_objects(
+        Bucket=bucket,
+        Delete=objects
+    )

@@ -118,7 +118,13 @@
                                     <i class="fa fa-pencil-square-o" aria-hidden="true"></i>
                                 </a>
                             {% endif %}
-                            <a>删除</a>
+                            <!-- 删除文件夹,删除时需要获取当前文件夹的id,这里使用data-fid={{ item.id }}来获取当前项目的id-->
+                            <a class="btn btn-danger btn-xs"
+                               data-toggle="modal" ,
+                               data-fid="{{ item.id }}" ,
+                               data-target="#alertModal">
+                                <i class="fa fa-trash" aria-hidden="true"></i>
+                            </a>
                         </td>
                     </tr>
                 {% endfor %}
@@ -126,7 +132,7 @@
             </table>
         </div>
     </div>
-    <!-- Modal -->
+    <!-- Modal 添加和编辑-->
     <div class="modal fade" id="addModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
@@ -155,18 +161,36 @@
             </div>
         </div>
     </div>
-
-
+    <!--删除-->
+    <div class="modal fade" id="alertModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+        <div class="modal-dialog" role="document">
+            <div class="alert alert-danger alert-dismissible fade in" role="alert">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <!--默认data-dismiss="alert"修改为modal即关闭modal对话框-->
+                    <span aria-hidden="true">×</span></button>
+                <h4>是否确定删除?</h4>
+                <p style="padding-top: 20px;padding-bottom: 20px;">文件夹中包含的所有文件都会被删除</p>
+                <p style="text-align: right;">  <!-- 取消和确定是修改过的-->
+                    <a class="btn btn-default btn-sm" data-dismiss="modal" aria-label="Close">取 消</a>
+                    <!--data-dismiss="modal" 即关闭整个modal对话框 -->
+                    <button id="btnDelete" type="button" class="btn btn-danger btn-sm">确 定</button>
+                </p>
+            </div>
+        </div>
+    </div>
 
 {% endblock %}
 
 {% block js %}
     <!--为使用的Modal对话框添加插件作用是修改modal对话框的title，页面初始化时就执行-->
     <script>
-        var FOLDER_URL = "{% url 'file' project_id=request.tracer.project.id %}"
+        var FOLDER_URL = "{% url 'file' project_id=request.tracer.project.id %}";
+        var FILE_DELETE_URL = "{% url 'file_delete' project_id=request.tracer.project.id %}";
+
         $(function () {
             initAddModal();
             bindModelSubmit();
+            bindDeleteSubmit();
         });
         <!--当模态对话框显示出来时,函数就会执行,下面是bootstrap中模态对话框的代码 -->
         <!-- 作用就是获取标签中属性data-whatever的值,然后替换.modal-title类标签的文本值,这里是modal对话框的tile,添加对话框是title是添加文件夹,编辑对话框时是编辑文件夹-->
@@ -194,6 +218,13 @@
                     $('#form')[0].reset();
                 }
             })
+
+            // 删除文件夹时获取当前文件的id，弹窗之前获取当前文件的id，通过删除标签a中添加的data-fid来获取
+            $('#alertModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget);
+                var fid = button.data("fid");
+                $("#btnDelete").attr("fid", fid)// id=btnDelete确定按钮新增绑定一个属性fid
+            })
         }
 
         // 新建文件夹点击确定后先后台发送ajax请求
@@ -217,5 +248,25 @@
                 })
             })
         }
+
+        // 删除功能事件
+        function bindDeleteSubmit() {
+            $("#btnDelete").click(function () {
+                // 获取要删除的那行ID
+                $.ajax({
+                    url: FILE_DELETE_URL,
+                    type: "GET",
+                    data: {fid: $(this).attr("fid")},
+                    success: function (res) {
+                        //console.log(res);
+                        if (res.status) {
+                            location.href = location.href; // 让当前页面刷新
+                        }
+                    }
+                })
+            })
+        }
+
+
     </script>
 {% endblock %}

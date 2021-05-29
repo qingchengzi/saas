@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # author： 青城子
-# datetime： 2021/5/24 20:04 
+# datetime： 2021/5/24 20:04
 # ide： PyCharm
 
 from django.shortcuts import render
@@ -10,6 +10,8 @@ from django.forms import model_to_dict  # 文件夹列表头部面包屑导航
 
 from web.forms.file import FolderModelForm
 from web import models
+
+from utils.tencent.cos import delete_file, delete_file_list
 
 
 # http://127.0.0.1:8000/manage/1/file/ 这样的url添加的时候是根目录
@@ -66,3 +68,55 @@ def file(request, project_id):
         form.save()
         return JsonResponse({"status": True})
     return JsonResponse({"status": False, "error": form.errors})
+
+
+# 用户发来删除url格式:http://127.0.0.1:8000/manage/1/file/delete/?fid=1
+def file_delete(request, project_id):
+    """
+      删除文件(数据库中文件删除，cos文件删除,当前项目已使用的空间容量还原
+      删除文件夹(找到该文件夹下所有的文件都要进行-->数据库中和cos删除,当前项目已使用的空间容量还原
+    :param request:
+    :param project:
+    :return:
+    """
+    fid = request.GET.get("fid")
+    # 删除数据库中的文件 & 文件夹 (级联删除)
+    delete_object = models.FileRepository.objects.filter(id=fid, project=request.tracer.project).first()
+    if delete_object.file_type == 1:
+        # 删除文件(数据库中文件删除，cos文件删除,当前项目已使用的空间容量还原
+        # 删除文件时，将容量还给当前项目。先找到当前项目已使用空间,然后减去当前文件大小
+        request.tracer.project.user_space -= delete_object.file_size  # 单位是字节
+        request.tracer.project.save()
+        # cos中删除文件
+        delete_file(request.tracer.project.bucket, request.tracer.project.region, delete_object.key)
+        # 在数据库中删除
+        delete_object.delete()
+        return JsonResponse({'status': True})
+
+    # 删除文件夹(找到该文件夹下所有的文件都要进行-->数据库中和cos删除,当前项目已使用的空间容量还原
+    total_size = 0
+    key_list = []  # 文件所有的key
+
+    folder_list = [delete_object, ]  # 目录列表
+    for folder in folder_list:  # 文件夹下面的所有文件和文件夹
+        child_list = models.FileRepository.objects.filter(project=request.tracer.project, parent=folder).order_by(
+            "-file_type")
+        for child in child_list:
+            if child.file_type == 2:  # 文件夹,添加到folder_list中
+                folder_list.append(child)
+            else:  # 文件大小汇总
+                total_size += child.file_size
+                # 删除文件,每次都删除一个文件,效率低
+                # delete_file(request.tracer.project.bucket, request.tracer.project.region, child.key)
+                # 腾讯提供的批量删除
+                key_list.append({"Key": child.key})
+    # cos批量删除文件
+    if key_list:
+        delete_file_list(request.tracer.project.bucket, request.tracer.project.region, key_list)
+    # 归还容量
+    if total_size:
+        request.tracer.project.user_space -= total_size
+        request.tracer.project.save()
+    # 删除数据库中的文件
+    delete_object.delete()
+    return JsonResponse({"status": True})
