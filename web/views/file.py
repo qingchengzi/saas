@@ -4,14 +4,17 @@
 # datetime： 2021/5/24 20:04
 # ide： PyCharm
 
+import json
+
 from django.shortcuts import render
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 from django.forms import model_to_dict  # 文件夹列表头部面包屑导航
 
 from web.forms.file import FolderModelForm
 from web import models
 
-from utils.tencent.cos import delete_file, delete_file_list
+from utils.tencent.cos import delete_file, delete_file_list, credential
 
 
 # http://127.0.0.1:8000/manage/1/file/ 这样的url添加的时候是根目录
@@ -120,3 +123,33 @@ def file_delete(request, project_id):
     # 删除数据库中的文件
     delete_object.delete()
     return JsonResponse({"status": True})
+
+
+@csrf_exempt
+def cos_credential(request, project_id):
+    """
+    获取cos上传临时凭证
+    # 做容量限制：单文件 & 总容量
+    :param request:
+    :return:
+    """
+    # 单文件限制的大小,数据库中单位M，将M转换为字节，因为前端传过来是字节
+    per_file_limit = request.tracer.price_policy.per_file_size * 1024 * 1024
+    total_file_limit = request.tracer.price_policy.project_space * 1024 * 1024 * 1024
+    total_size = 0
+    file_list = json.loads(request.body.decode("utf-8"))
+    for item in file_list:
+        # 上传文件的字节大小，单位字节 item['size'] = B
+        if item.get('size') > per_file_limit:  # 单文件超出限制
+            msg = "单文件超出限制(最大{0}M，文件:{1},请升级套餐。".format(request.tracer.price_policy.per_file_size, item["name"])
+            return JsonResponse({"status": False, "error": msg})
+        total_size += item['size']
+
+    # 总容量进行限制
+    # request.tracer.price_policy.project_space  # 项目的允许的空间
+    # request.tracer.project.user_space  # 项目已使用的空间
+    if request.tracer.project.user_space + total_size > total_file_limit:
+        return JsonResponse({"status": False, "error": "容量超过限制，请升级套餐"})
+
+    data_dict = credential(request.tracer.project.bucket, request.tracer.project.region)
+    return JsonResponse({"status": True, "data": data_dict})
