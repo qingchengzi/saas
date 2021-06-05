@@ -89,6 +89,17 @@ def delete_file_list(bucket, region, key_list):
     )
 
 
+def check_file(bucket, region, key):
+    config = CosConfig(Region=region, SecretId=settings.TENCENT_COS_ID, SecretKey=settings.TENCENT_COS_KEY, )
+    client = CosS3Client(config)
+    print("到自豪的啊",key)
+    data = client.head_object(
+        Bucket=bucket,
+        Key=key,
+    )
+    return data
+
+
 def credential(bucket, region):
     """ 获取cos上传临时凭证 """
     from sts.sts import Sts

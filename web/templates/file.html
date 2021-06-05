@@ -88,7 +88,7 @@
                     <th>操作</th>
                 </tr>
                 </thead>
-                <tbody>
+                <tbody id="rowList">
                 {% for item in file_object_list %}
                     <tr>
                         <td>
@@ -122,7 +122,13 @@
                                    data-whatever="修改文件夹">
                                     <i class="fa fa-pencil-square-o" aria-hidden="true"></i>
                                 </a>
+                            {% else %}
+                                <a class="btn btn-default btn-xs download"
+                                   href="{% url 'file_download' project_id=request.tracer.project.id file_id=item.id %}">
+                                    <i class="fa fa-cloud-download" aria-hidden="true"></i>
+                                </a>
                             {% endif %}
+
                             <!-- 删除文件夹,删除时需要获取当前文件夹的id,这里使用data-fid={{ item.id }}来获取当前项目的id-->
                             <a class="btn btn-danger btn-xs"
                                data-toggle="modal" ,
@@ -214,6 +220,30 @@
             </tr>
         </table>
     </div>
+
+
+    <div class="hide">
+        <table id="rowTpl">
+            <tr>
+                <td>
+                    <i class="fa fa-file" aria-hidden="true"></i>
+                    <span class="name"></span>
+                </td>
+                <td class="file_size"></td>
+                <td class="username"></td>
+                <td class="datetime"></td>
+                <td>
+                    <a class="btn btn-default btn-xs download">
+                        <i class="fa fa-cloud-download" aria-hidden="true"></i>
+                    </a>
+                    <a class="btn btn-danger btn-xs delete" data-toggle="modal" data-target="#alertModal">
+                        <i class="fa fa-trash" aria-hidden="true"></i>
+                    </a>
+                </td>
+            </tr>
+        </table>
+    </div>
+
 {% endblock %}
 
 {% block js %}
@@ -223,6 +253,8 @@
         var FOLDER_URL = "{% url 'file' project_id=request.tracer.project.id %}";
         var FILE_DELETE_URL = "{% url 'file_delete' project_id=request.tracer.project.id %}";
         var COS_CREDENTIAL = "{% url 'cos_credential' project_id=request.tracer.project.id %}";
+        var FILE_POST = "{% url 'file_post' project_id=request.tracer.project.id %}";
+        var CURRENT_FOLDER_ID = "{{  folder_obj.id }}"
         var COS_OBJECT = new COS({
             getAuthorization: function (options, callback) {
                 // 向django后台发送请求，获取临时凭证
@@ -362,6 +394,8 @@
                 // 上传文件(上传之前先获取临时凭证
                 $.each(fileList, function (index, fileObject) {
                     var fileName = fileObject.name;
+                    var fileSize = fileObject.size;
+                    var key = (new Date()).getTime() + "_" + fileName;
                     // 进度条,通过克隆id=progressTemplate进度条添加到id=progressList
                     var tr = $("#progressTemplate").find("tr").clone(); // 克隆id=progressTemplate里面的tr,jquer里面的对象所有命名$tr
                     tr.find('.name').text(fileName);  // 上传的文件名
@@ -371,7 +405,7 @@
                     cos_credential.putObject({
                         Bucket: '{{ request.tracer.project.bucket }}', /* 必须 */
                         Region: '{{ request.tracer.project.region }}', /* 存储桶所在地域，必须字段 */
-                        Key: fileName, /* 必须 */
+                        Key: key, /* 必须 */
                         Body: fileObject, // 上传文件对象
                         onProgress: function (progressData) {
                             {#console.log("文件上传进度--->", fileName, JSON.stringify(progressData.percent));#}
@@ -381,6 +415,36 @@
                         }
                     }, function (err, data) {
                         console.log(err || data);
+                        if (data && data.statusCode === 200) {
+                            // 上传成功,将本次上传的文件提交到后台并写入数据
+                            // 当前文件上传成功
+                            // 第二种发送ajax请求的方法$.post()
+                            $.post(FILE_POST, {
+                                name: fileName,
+                                key: key,
+                                file_size: fileSize,
+                                parent: CURRENT_FOLDER_ID,// 当前访问的目录id
+                                etag: data.ETag, // 腾讯对象返回的id
+                                file_path: data.Location
+                            }, function (res) {
+                                console.log(res);
+                                // 在数据库中写入成功，将已添加的数据在页面上动态展示
+                                var newTr = $("#rowTpl").find("tr").clone();
+                                newTr.find(".name").text(res.data.name);
+                                newTr.find(".username").text(res.data.username);
+                                newTr.find(".file_size").text(res.data.file_size);
+                                newTr.find(".datetime").text(res.data.datetime);
+                                newTr.find(".delete").attr("data-fid", res.data.id);
+                                // 给下载标签a添加href属性，下载文件
+                                newTr.find(".download").attr("href", res.data.download_url);
+                                $("#rowList").append(newTr);
+
+                                // 自己的进度条删除
+                                tr.remove();
+                            })
+                        } else {
+                            tr.find('.progress-error').text("上传失败");
+                        }
                     });
 
                 })

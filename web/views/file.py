@@ -5,13 +5,14 @@
 # ide： PyCharm
 
 import json
+import requests
 
-from django.shortcuts import render
+from django.shortcuts import render, HttpResponse
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.forms import model_to_dict  # 文件夹列表头部面包屑导航
-
-from web.forms.file import FolderModelForm
+from django.urls import reverse
+from web.forms.file import FolderModelForm, FileModelForm
 from web import models
 
 from utils.tencent.cos import delete_file, delete_file_list, credential
@@ -49,6 +50,7 @@ def file(request, project_id):
             "form": form,
             "file_object_list": file_object_list,
             "breadcrumb_list": breadcrumb_list,
+            "folder_obj": parent_object  # 当前目录
         }
         return render(request, "file.html", context)
 
@@ -153,3 +155,70 @@ def cos_credential(request, project_id):
 
     data_dict = credential(request.tracer.project.bucket, request.tracer.project.region)
     return JsonResponse({"status": True, "data": data_dict})
+
+
+@csrf_exempt
+def file_post(request, project_id):
+    """
+    已上传成功的文件写入到数据库
+    前端传来的值：
+        name:fileName,
+        key:key,
+        file_size:fileSize,
+        parent:CURRENT_FOLDER_ID,// 当前访问的目录id
+        etag:data.ETag, // 腾讯对象返回的id
+        file_path:data.Location
+    :param request:
+    :param project_id:
+    :return:
+    """
+    # 根据key再去cos获取文件Etag和
+    # 把获取到的数据写入到数据库
+    form = FileModelForm(request, data=request.POST)
+    if form.is_valid():
+        # 校验通过:数据写入到数据库
+        # 通过ModelForm.save存储到数据库中的数据返回的instance对象，无法通过get_xx_display获取choice的中文
+        # form.instance.file_type = 1
+        # form.update_user = request.tracer.user
+        # instance = form.save()
+        # 使用第二种方法，能通过get_xx_display获取choice的中文
+        data_dict = form.cleaned_data  # 验证成功后的字段
+        data_dict.pop("etag")  # models模型中没有etag字段，所以去除
+        data_dict.update({"project": request.tracer.project, "file_type": 1, "update_user": request.tracer.user})
+        instance = models.FileRepository.objects.create(**data_dict)
+
+        # 项目已使用空间：更新data_dict.get("file_size")单位是字节
+        request.tracer.project.user_space += data_dict.get("file_size")
+        request.tracer.project.save()
+
+        result = {
+            "id": instance.id,
+            "name": instance.name,
+            "file_size": instance.file_size,
+            "username": instance.update_user.username,
+            'datetime': instance.update_datetime.strftime("%Y{0}%m{1}%d{2} %H:%M").format("年", "月", "日"),
+            "download_url": reverse("file_download", kwargs={"project_id": project_id, "file_id": instance.id})
+            # "file_type": instance.get_file_type_display(),
+        }
+        return JsonResponse({"status": True, "data": result})
+    return JsonResponse({"status": False, "data": "文件错误"})
+
+
+def file_download(request, project_id, file_id):
+    """
+    下载文件
+    :param request:
+    :param project:
+    :return:
+    """
+    # 文件内容
+    # 响应头
+    # 打开文件，获取文件的内容;去COS获取文件内容;
+    file_object = models.FileRepository.objects.filter(id=file_id, project_id=project_id).first()
+    res = requests.get(file_object.file_path)
+    # 文件分块处理（适应大文件)
+    data = res.iter_content()
+    response = HttpResponse(data)
+    # 设置响应头,浏览见到如下响应头就会去下载文件
+    response["Content-Disposition"] = "attachment;filename={0}".format(file_object.name)
+    return response
