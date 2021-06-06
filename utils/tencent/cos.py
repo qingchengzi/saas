@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # author： 青城子
-# datetime： 2021/5/16 16:31 
+# datetime： 2021/5/16 16:31
 # ide： PyCharm
-
 
 from qcloud_cos import CosConfig
 from qcloud_cos import CosS3Client
 from django.conf import settings
+from qcloud_cos.cos_exception import CosServiceError
 
 
 def create_bucket(bucket, region="ap-guangzhou"):
@@ -92,7 +92,7 @@ def delete_file_list(bucket, region, key_list):
 def check_file(bucket, region, key):
     config = CosConfig(Region=region, SecretId=settings.TENCENT_COS_ID, SecretKey=settings.TENCENT_COS_KEY, )
     client = CosS3Client(config)
-    print("到自豪的啊",key)
+    print("到自豪的啊", key)
     data = client.head_object(
         Bucket=bucket,
         Key=key,
@@ -134,3 +134,50 @@ def credential(bucket, region):
     sts = Sts(config)
     result_dict = sts.get_credential()
     return result_dict
+
+
+def delete_bucket(bucket, region):
+    """
+    删除桶
+    # 先删除桶中所有文件
+    删除桶中所有碎片
+    删除桶
+    :return:
+    """
+    config = CosConfig(Region=region, SecretId=settings.TENCENT_COS_ID, SecretKey=settings.TENCENT_COS_KEY, )
+    client = CosS3Client(config)
+    try:
+        # 找到桶中的所有文件,腾讯COS一次最多返回1000个文件,所有需要循环删除
+        while True:
+            part_objects = client.list_objects(bucket)
+            # 已经删除完毕，获取不到值
+            contents = part_objects.get("Contents")
+            if not contents:
+                break
+            # 批量删除
+            objects = {
+                "Quiet": "true",
+                "Object": [{"Key": item["Key"]} for item in contents]
+            }
+            client.delete_objects(bucket, objects)
+            # 最后一个文件时=false
+            if part_objects["IsTruncated"] == "false":
+                break
+
+        # 找到碎片 & 删除
+        while True:
+            part_uploads = client.list_multipart_uploads(bucket)
+            # Upload为空说明没有碎片
+            uploads = part_uploads.get("Upload")
+            if not uploads:
+                break
+            for item in uploads:
+                client.abort_multipart_upload(bucket, item.get("Key"), item.get["UploadId"])
+
+            # 最后一个文件时=false
+            if part_uploads["IsTruncated"] == "false":
+                break
+
+        client.delete_bucket(bucket)
+    except CosServiceError as err:
+        pass

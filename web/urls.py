@@ -11,6 +11,8 @@ from web.views import project
 from web.views import manage
 from web.views import wiki
 from web.views import file
+from web.views import setting
+from web.views import issues
 
 urlpatterns = [
     url(r'^register/$', account.register, name='register'),
@@ -30,7 +32,6 @@ urlpatterns = [
     url(r'^project/unstar/(?P<project_type>\w+)/(?P<project_id>\d+)/$', project.project_unstar, name="project.unstar"),
     url(r'^manage/(?P<project_id>\d+)/', include([
         url(r'^dashboard/$', manage.dashboard, name="dashboard"),
-        url(r'^issues/$', manage.issues, name="issues"),
         url(r'^statistics/$', manage.statistics, name="statistics"),
 
         url(r'^wiki/$', wiki.wiki, name="wiki"),
@@ -47,7 +48,10 @@ urlpatterns = [
         # url(r'^file/download/(?P<file_id>\d+)/$', file.file_download, name='file_download'),
         url(r'^file/download/(?P<file_id>\d+)/$', file.file_download, name="file_download"),
 
-        url(r'^setting/$', manage.setting, name="setting"),
+        url(r'^setting/$', setting.setting, name="setting"),
+        url(r'^setting/delete/$', setting.delete, name="setting_delete"),
+
+        url(r'^issues/$', issues.issues, name="issues"),
     ], None, None)),
 
 ]
