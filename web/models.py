@@ -13,6 +13,8 @@ class UserInfo(models.Model):
     password = models.CharField(verbose_name="密码", max_length=32)
 
     # price_policy = models.ForeignKey(verbose_name="价格策略", to="PricePolicy", null=True, blank=True)
+    def __str__(self):
+        return self.username
 
 
 class PricePolicy(models.Model):

@@ -16,5 +16,8 @@ class BootStrapForm:
             # bootstrap_class_exclude列表为空说明所有都要添加样式
             if name in self.bootstrap_class_exclude:
                 continue
-            field.widget.attrs['class'] = "form-control"
+            old_class = field.widget.attrs.get("class","")
+            # 给所有前段form标签都添加class = "form-control" 属性
+            # 如果需要给特定标签添加定制的class属性，通过定义old_class，然后如下通过字符串格式化来添加多个class属性
+            field.widget.attrs['class'] = "{0} form-control" .format(old_class)
             field.widget.attrs['placeholder'] = "请输入%s" % (field.label,)
