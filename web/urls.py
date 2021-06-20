@@ -13,6 +13,7 @@ from web.views import wiki
 from web.views import file
 from web.views import setting
 from web.views import issues
+from web.views import dashboard
 
 urlpatterns = [
     url(r'^register/$', account.register, name='register'),
@@ -31,7 +32,7 @@ urlpatterns = [
     # 取消项目的星标
     url(r'^project/unstar/(?P<project_type>\w+)/(?P<project_id>\d+)/$', project.project_unstar, name="project.unstar"),
     url(r'^manage/(?P<project_id>\d+)/', include([
-        url(r'^dashboard/$', manage.dashboard, name="dashboard"),
+
         url(r'^statistics/$', manage.statistics, name="statistics"),
 
         url(r'^wiki/$', wiki.wiki, name="wiki"),
@@ -52,6 +53,14 @@ urlpatterns = [
         url(r'^setting/delete/$', setting.delete, name="setting_delete"),
 
         url(r'^issues/$', issues.issues, name="issues"),
+        url(r'^issues/detail/(?P<issues_id>\d+)/$', issues.issues_detail, name="issues_detail"),
+        url(r'^issues/record/(?P<issues_id>\d+)/$', issues.issues_record, name="issues_record"),
+        url(r'^issues/change/(?P<issues_id>\d+)/$', issues.issues_change, name="issues_change"),
+        url(r'^issues/invite/url/$', issues.invite_url, name="invite_url"),
+
+        url(r'^dashboard/$', dashboard.dashboard, name="dashboard"),
     ], None, None)),
+    # 邀请码
+    url(r'^invite/join/(?P<code>\w+)/$', issues.invite_join, name="invite_join"),
 
 ]

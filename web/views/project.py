@@ -66,8 +66,12 @@ def project_list(request):
         form.instance.region = region
         # 验证通过:用户提交了项目名、颜色、描述，还需要谁创建的项目
         form.instance.creator = request.tracer.user  # 当前用户创建的项目
-        # 创建项目
-        form.save()
+        instance = form.save()  # 创建项目成功后返回当前创建项目的对象
+        # 3、项目初始化问题类型
+        issues_type_object_list = []
+        for item in models.IssuesType.PROJECT_INIT_LIST:  # ["任务", '功能', 'Bug']
+            issues_type_object_list.append(models.IssuesType(project=instance, title=item))
+        models.IssuesType.objects.bulk_create(issues_type_object_list)  # 批量添加
         return JsonResponse({"status": True})
 
     return JsonResponse({"status": False, "error": form.errors})
