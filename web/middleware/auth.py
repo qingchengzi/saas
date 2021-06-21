@@ -44,6 +44,7 @@ class AuthMiddleware(MiddlewareMixin):
             return
         # 检测用户是否已登录，如果已登录继续往后走，未登录则返回到登录页面
         if not request.tracer.user:
+            print("金啊啊 ")
             return redirect("login")
         # 登录成功之后，访问后台管理时：获取当前用户所拥有的额度
         # 方式一：免费额度在交易记录中存储
