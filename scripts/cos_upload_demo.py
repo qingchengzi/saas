@@ -7,8 +7,8 @@
 from qcloud_cos import CosConfig
 from qcloud_cos import CosS3Client
 
-secret_id = 'AKIDxiDSQ7XgYAVZNt86oFPItEI4ZomUv5ya'  # 替换为用户的 secretId
-secret_key = 'MRGo5B4g15tQItDKAj13oIUR6UbR0IJ3'  # 替换为用户的 secretKey
+secret_id = 'xxxxx'  # 替换为用户的 secretId
+secret_key = 'xxx'  # 替换为用户的 secretKey
 
 region = 'ap-guangzhou'  # 替换为用户的 Region
 
