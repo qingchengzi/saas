@@ -218,7 +218,8 @@ def file_download(request, project_id, file_id):
     res = requests.get(file_object.file_path)
     # 文件分块处理（适应大文件)
     data = res.iter_content()
-    response = HttpResponse(data)
+    response = HttpResponse(data, content_type="application/octet-stream")
+    from django.utils.encoding import  escape_uri_path
     # 设置响应头,浏览见到如下响应头就会去下载文件
-    response["Content-Disposition"] = "attachment;filename={0}".format(file_object.name)
+    response["Content-Disposition"] = "attachment;filename={0}".format(escape_uri_path(file_object.name))
     return response
